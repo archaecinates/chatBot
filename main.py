@@ -11,7 +11,6 @@ TOKEN = "7927045864:AAEuaDleP5MlCUHrE30Mxf5YWegY4EUWUXE"  # Ganti dengan token y
 MODEL_NAME = "microsoft/DialoGPT-medium"
 DATA_FILE = "chatbot_memory.json"
 
-# Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,6 @@ model.to(device)
 
 print(f"✅ Model loaded! Running on: {device}")
 
-# Load chatbot memory
 if os.path.exists(DATA_FILE):
     try:
         with open(DATA_FILE, "r") as file:
@@ -34,39 +32,36 @@ if os.path.exists(DATA_FILE):
 else:
     memory = {}
 
-chat_history = []  # Simpan percakapan sebelumnya (maksimal 5)
+chat_history = [] 
 
 def get_response(user_input):
     """Menghasilkan respons menggunakan model transformer."""
     global chat_history
     new_input = tokenizer.encode(user_input + tokenizer.eos_token, return_tensors="pt").to(device)
 
-    # Simpan history maksimal 5 percakapan terakhir
     chat_history.append(new_input)
     chat_history = chat_history[-5:]
 
-    # Gabungkan input dan history
     inputs = tokenizer.encode(user_input + tokenizer.eos_token, return_tensors="pt", padding=True).to(device)
-    attention_mask = inputs.ne(tokenizer.pad_token_id).to(device)  # Buat attention mask yang valid
+    attention_mask = inputs.ne(tokenizer.pad_token_id).to(device)  
 
     output = model.generate(
         inputs,
-        attention_mask=attention_mask,  # Masukkan attention mask
+        attention_mask=attention_mask,  
         max_length=150,
         num_return_sequences=1,
         no_repeat_ngram_size=3,
         top_p=0.92,
         temperature=0.7,
-        pad_token_id=tokenizer.eos_token_id  # Pastikan pad token sudah di-set
+        pad_token_id=tokenizer.eos_token_id  
     )
 
     response = tokenizer.decode(output[:, inputs.shape[-1]:][0], skip_special_tokens=True)
 
     # Simpan history response
-    chat_history.append(output.detach().cpu())  # Hindari error GPU
+    chat_history.append(output.detach().cpu())  
     return response
 
-# List kata-kata negatif untuk memberikan motivasi
 sad_words = ["capek", "lelah", "sedih", "gagal", "sendirian", "stress", "galau", "down", "kesepian", "pusing"]
 motivations = [
     "Tetap semangat, ya! Aku yakin kamu bisa melewatinya. 💪",
@@ -84,7 +79,7 @@ def is_sensitive_topic(text):
 def get_transformers_response(user_input):
     """Menghasilkan respons dari model transformer dengan pengamanan tambahan."""
     try:
-        user_input = user_input[:100]  # Batasi panjang input agar tidak error
+        user_input = user_input[:100]  
         inputs = tokenizer.encode(user_input + tokenizer.eos_token, return_tensors="pt").to(device)
 
         output = model.generate(
